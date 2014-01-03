@@ -4,31 +4,33 @@
 <!----------Declarations------------>
 
 <!ELEMENT packageDeclaration (packageName)> <!--package packageName;-->
-<!ELEMENT importDecalarations (importDeclaration+)>
 <!ELEMENT importDecalaration (singleTypeImportDeclaration | typeImportOnDemandDeclaration)>
 <!-- ignore "import static" -->
 <!ELEMENT singleTypeImportDeclaration (typeName)> <!-- import typeName -->
 <!ELEMENT typeImportOnDemandDeclaration (packageName)> <!-- import packageName.* -->
-<!ELEMENT typeDeclaration (classDeclaration, interfaceDeclaration)>
-<!ELEMENT classDeclaration (classModifier*, identifier, super?, interfaces?, classBody)>
+<!ELEMENT typeDeclaration (classDeclaration | interfaceDeclaration)>
+<!ELEMENT classDeclaration (classModifier*, identifier, super?, interfaceType*, classBody)>
 <!ELEMENT classModifier (#PCDATA)> <!--public | abstract | final-->
 <!ELEMENT super (classType)> <!--extends classType-->
-<!ELEMENT interfaces (interfaceType*)> <!-- implements interfaceType,...-->
 <!ELEMENT classBody (classBodyDeclaration*)>
-<!ELEMENT classBodyDeclaration (classMemberDeclaration | staticInitialier | constructorDeclaration)>
-<!ELEMENT classMemberDeclaration (fieldDeclaration | methodDeclaration)>
-<!ELEMENT staticInitialier (block) <!-- static block -->
+<!ELEMENT classBodyDeclaration 
+	  ( fieldDeclaration 
+	  | methodDeclaration 
+	  | staticInitializer 
+	  | constructorDeclaration)>
+<!ATTLIST classBodyDeclaration id ID #REQUIRED> 
+<!ELEMENT staticInitializer (block) <!-- static block -->
 <!ELEMENT constructorDeclaration (constructorModifier*, constructorDeclarator, throws?, constructorBody)>
 <!ELEMENT constructorModifier (#PCDATA)> <!-- public | protected | private -->
 <!ELEMENT constructorDeclarator (simpleTypeName, formalParameter*)>
 <!ELEMENT formalParameter (tp, variableDeclaratorId)>
 <!ELEMENT throws (classType*)> <!-- throws classType,... -->
-<!ELEMENT constructBody (explicitConstructorInvocation?, statement*)>
+<!ELEMENT constructorBody (explicitConstructorInvocation?, statement*)>
 <!ELEMENT explicitConstructorInvocation (invocationKind, argument*)> <!-- this() | super() -->
 <!ELEMENT invocationKind (#PCDATA)> <!--this | super -->
-<!ELEMENT fieldDeclaration>  (fieldModifier*, tp, variableDeclarator*)>
+<!ELEMENT fieldDeclaration  (fieldModifier*, tp, variableDeclarator+)>
 <!ELEMENT fieldModifier (#PCDATA)> <!-- public | protected | private | static | final | transient | volatile -->
-<!ELEMENT variableDeclarator (variableDeclaratorId,  variableInitializer?)> <!-- variableDeclaratorId [= variableInitializer]-->
+<!ELEMENT variableDeclarator (variableDeclaratorId, variableInitializer?)> <!-- variableDeclaratorId [= variableInitializer]-->
 <!ELEMENT variableDeclaratorId (identifier, dims)> <!-- dims denote the dimension fo array. If it is zero, means it's not array variable. -->
 <!ELEMENT variableInitializer (expression | arrayInitializer)>
 <!ELEMENT methodDeclaration (methodHeader, methodBody)>
@@ -42,7 +44,8 @@
 <!ELEMENT interfaceModifier (#PCDATA)> <!-- public | abstract -->
 <!ELEMENT extendsInterfaces (interfaceType+)> <!-- extends interfaceType -->
 <!ELEMENT interfaceBody (interfaceMemberDeclaration*)>
-<!ELEMENT interfaceMemberDeclaration (constantDeclaration> | abstractMethodDeclaration)>
+<!ELEMENT interfaceMemberDeclaration (constantDeclaration | abstractMethodDeclaration)>
+<!ATTLIST interfaceMemberDeclaration id ID #REQUIRED>
 <!ELEMENT constantDeclaration (constantModifiers, tp, variableDeclarator)>
 <!ELEMENT constantModifiers (#PCDATA)> <!-- public | static | final -->
 <!ELEMENT abstractMethodDeclaration (abstractMethodModifier*, resultType, methodMeclarator, throws?)>
@@ -53,10 +56,15 @@
 
 <!ELEMENT tp (primitiveType | referenceType)>
 <!ELEMENT primitiveType (#PCDATA)> <!-- boolean | byte | short | int | long | char | float | double -->
+<!ATTLIST primitiveType caseNum CDATA #REQUIRED>
 <!ELEMENT referenceType (arrayType | classType | interfaceType)>
+<!ATTLIST referenceType caseNum CDATA #REQUIRED>
 <!ELEMENT classType (typeName)>
+<!ATTLIST classType caseNum CDATA #REQUIRED> 
 <!ELEEMNT interfaceType (typeName)>
+<!ATTLIST interfaceType caseNum CDATA #REQUIRED> 
 <!ELEMENT arrayType (tp)> <!-- arrayType has already represent "[]" -->
+<!ATTLIST arrayType caseNum CDATA #REQUIRED>
 
 <!----------Blocks and Commands---------->
 
@@ -187,7 +195,8 @@
 	  | this <!-- this -->
 	  | super <!-- added by myself -->
 	  | parExpression <!-- parathized --> 
-	  | classInstanceCreationExpression 
+	  | classInstanceCreationExpression
+	  | interfaceInstanceCreationExpression
 	  | fieldAccess 
 	  | methodInvocation 
 	  | arrayAccess
@@ -196,6 +205,7 @@
 <!ELEMENT super EMPTY>
 <!ELEMENT parExpression (expression)>
 <!ELEMENT classInstanceCreationExpression (classType, argument*)>
+<!ELEMENT interfaceInstanceCreateionExpressionn (interfaceType, argument*, calssBody)<!-- Add by myself -->
 <!ELEMENT argument (expression)>
 <!ELEMENT arrayCreationExpression ((primitiveType | classOrInterfaceType), dimExpr+, dims)>
 <!ELEMENT dimExpr (expression)> <!-- [expression] -->
@@ -208,10 +218,11 @@
 <!----------Tokens---------->
 
 <!ELEMENT packageName (identifier+)>
-<!ELEMENT typeName (pakageName?, identifier)>
+<!ELEMENT typeName (packageName?, identifier)>
 <!ELEMENT simpleTypeName (identifier)>
 <!ELEMENT expressionName (ambiguousName?, identifier)>
 <!ELEMENT methodName (ambiguousName?, identifier)>
 <!ELEMENT ambiguousName (ambiguousName?, identifier)>
 <!ELEMENT literal (#PCDATA)>
+<!ELEMENT identifier (#PCDATA)>
 ]>
