@@ -21,8 +21,7 @@ FOR VIEW compilationUnit[$vPackageDeclaration AS v:packageDeclaration?, $vImport
 PROCEDURE updatePackageDeclarationQ(source $src AS s:packageDeclaration?, view $view AS v:packageDeclaration?) =
 UPDATE $sPackageDeclaration IN $src BY
 {
-	MATCH -> updatePackageDeclaration($sPackageDeclaration, $vPackageDeclaration)
-	| UNMATCHS -> DELETE .
+	MATCH -> REPLACE . WITH $vPackageDeclaration
 	| UNMATCHV -> CREATE VALUE <packageDeclaration>
 					<packageName>
 						<identifier/>
@@ -31,107 +30,55 @@ UPDATE $sPackageDeclaration IN $src BY
 }
 FOR VIEW $vPackageDeclaration IN $view
 
-PROCEDURE updatePackageDeclaration(source $src AS s:packageDeclaration, view $view AS v:packageDeclaration) =
-UPDATE packageDeclaration[$sPackageName AS s:packageName] IN $src BY
-{
-	updatePackageName($sPackageName, $vPackageName)
-}
-FOR VIEW packageDeclaration[$vPackageName AS v:packageName] IN $view
-
-PROCEDURE updateImportDeclaration(source $src AS s:importDeclaration, view $view AS v:importDeclaration) =
-UPDATE importDeclaration[$sDeclaration AS (s:singleTypeImportDeclaration | s:typeImportOnDemandDeclaration)] IN $src BY
-{
-	 CASE $sDeclaration OF
-	{
-		$sSingleTypeImportDeclaration AS s:SingleTypeImportDeclaration 
-		-> CASE $vDeclaration OF
-		{
-			$vSingleTypeImportDeclaration AS v:SingleTypeImportDeclaration 
-			-> updateSingleTypeImportDeclration ($sSingleTypeImportDeclaration, $vSingleTypeImportDeclaration)
-			| $vTypeImportOnDemandDeclaration AS v:typeImportOnDemandDeclaration
-			-> DELETE . ;
-			CREATE VALUE <typeImportOnDemandDeclaration>
-					<packageName>
-						<identifier/>
-					</packageName>
-			       	     </typeImportOnDemandDeclaration>
-		}
-		| $sTypeImportOnDemandDeclaration AS s:typeImportOnDemandDeclaration
-		-> CASE $vDeclaration OF
-		{
-			$vSingleTypeImportDeclaration AS v:SingleTypeImportDeclaration
-			-> DELETE . ; 
-			CREATE VALUE <singleTypeImportDeclaration>
-					<typeName>
-						<packageName>
-							<idnetifier/>
-						</packageName>
-						<identifier/>
-					</typeName>
-			       	     </singleTypeImportDeclaration>
-			| $vTypeImportOnDemandDeclaration AS v:typeImportOnDemandDeclaration
-			-> updateTypeImportOnDemandDeclaration ($sTypeImportOnDemandDeclaration, $vTypeImportOnDemandDeclaration) 
-		}
-	}
-}
-FOR VIEW importDeclaration[$vDeclaration AS (s:singleTypeImportDeclaration | s:typeImportOnDemandDeclaration)] IN $view
-
 PROCEDURE updateImportDeclarations(source $src AS s:importDeclaration*, view $view AS v:importDeclaration*) =
 UPDATE $sImportDeclaration IN $src BY
 {
-	MATCH -> upadateImportDeclaration($sImportDeclaration, $vImportDeclaration)
+	MATCH -> REPLACE $sImportDeclaration WITH $vImportDeclaration 
 	| UNMATCHV -> CASE $vImportDeclaration OF
 	{
-		v:TypeImportOnDemandDeclaration -> CREATE VALUE <typeImportOnDemandDeclaration>
-									<packageName>
-										<identifier/>
-									/packageName>
-			       	     				</typeImportOnDemandDeclaration>
-		v:singleTypeImportDeclaration -> CREATE VALUE <singleTypeImportDeclaration>
-								<typeName>
-									<packageName>
-										<idnetifier/>
-									</packageName>
-									<identifier/>
-								</typeName>
-			       	     			      </singleTypeImportDeclaration>
+		v:TypeImportOnDemandDeclaration 
+		-> CREATE VALUE <importDeclaration>
+				 <typeImportOnDemandDeclaration>
+				  <packageName>
+				   <identifier/>
+				  </packageName>
+			       	 </typeImportOnDemandDeclaration>
+				</importDeclaration>
+		v:singleTypeImportDeclaration 
+		-> CREATE VALUE <importDeclaration>
+		   	  	 <singleTypeImportDeclaration>
+			  	  <typeName>
+				   <packageName>
+				    <idnetifier/>
+				   </packageName>
+				   <identifier/>
+				  </typeName>
+			       	 </singleTypeImportDeclaration>
+				</importDeclaration>
 	}
 }
 FOR VIEW $vImportDeclaration IN $view
-
-PROCEDURE updateSingleTypeImportDeclaration(source $src AS s:singleTypeImportDeclaration, view $view AS v:singTypeImportDeclaration) =
-UPDATE singleTypeImportDeclaration[$sTypeName AS s:typeName] IN $src BY
-{
-	upadateTypeName($sTypeName, $vTypeName)
-}
-FOR VIEW singleTypeImportDeclaration[$vTypeName AS v:typeName] IN $view
-
-PROCEDURE updateTypeImportOnDemandDeclaration(source $src AS s:typeImportOnDemandDeclaration, view $view AS v:typeImportOnDemandDeclaration) =
-UPDATE typeImportOnDemandDeclaration[$sPackageName AS s:packageName] IN $src BY
-{
-	updatePackageName($sPackageName, $vPackageName)
-}
-FOR VIEW typeImportOnDemandDeclaration[$vPackageName AS v:packageName] IN $view
 
 PROCEDURE updateTypeDeclarations(source $src AS s:typeDeclaration*, view $view AS v:typeDeclaration*) =
 UPDATE $sDeclaration IN $src BY
 {
 	MATCH -> updateTypeDeclaration($sDeclaration, $vDeclaration)
-	| UNMATCHS -> DELETE .
 	| UNMATCHV -> CASE $vDeclaration OF
 	{
 		$classDeclaration AS v:classDeclaration
-		-> CREATE VALUE <classDeclaration>
-					<identifier/>
-					<classBodey>					
-					</classBody>
-				</classDeclaration>
+		-> CREATE VALUE <typeDeclaration>
+		   	  	 <classDeclaration atype="classDeclaration">
+				  <identifier/>
+				  <classBodey/>					
+				 </classDeclaration>
+				<typeDeclaration>
 		| $interfaceDeclaration AS v:interfaceDeclaration
-		-> CREATE VALUE <interfaceDeclaration>
-					<identifier/>
-					<interfaceBodey>					
-					</interfaceBody>
-			       	</interfaceDeclaration>	
+		-> CREATE VALUE <typeDeclaration>
+		   	  	 <interfaceDeclaration atype="interfaceDeclaration">
+				  <identifier/>
+				  <interfaceBody/>					
+			       	 </interfaceDeclaration>
+				</typeDeclaration>	
 	}	
 }
 FOR VIEW $vDeclaration IN $view
@@ -139,45 +86,49 @@ MATCHING SOURCE BY $sDeclaration/identifier VIEW BY $vDeclaration/identifier
 (:Here matching by the name of class or interface:)
 
 PROCEDURE updateTypeDeclaration(source $src AS s:typeDeclaration, view $view AS v:typeDeclaration) =
-UPDATE $sDeclaration IN $src BY
+UPDATE typeDeclaration[$sDeclaration AS (s:classDeclaration | s:interfaceDeclaration)] IN $src BY
 {
-	CASE $vDeclaration OF 
+	MATCH -> CASE $vDeclaration OF 
 	{
 		$vClassDeclaration AS v:classDeclaration 
 		-> CASE $sDeclaration OF
 		{
 			$sClassDeclaration AS s:classDeclaration 
 			-> updateClassDeclaration($sClassDeclaration, $vClassDeclaration)
-			| $sInterfaceDeclaration AS s:InterfaceDeclaration
-			-> DELETE . ;
-			CREATE VALUE <classDeclaration>
-					<identifier/>
-					<classBody>
-					</classBody>
-		       	     	     </classDeclaration>
 		}
 		| $vInterfaceDeclaration AS v:interfaceDeclaration
 		-> CASE $sDeclaration OF
-		{
-			$sClassDeclaration AS s:classDeclaration
-			-> DELETE . ;
-			CREATE VALUE <interfaceDeclaration>
-					<identifier/>
-					<interfaceBodey>					
-					</interfaceBody>
-		       	     		</interfaceDeclaration>
-			| $sInterfaceDeclaration AS s:InterfaceDeclaration
+		{		
+			$sInterfaceDeclaration AS s:InterfaceDeclaration
 			-> updateInterfaceDeclaration($sInterfaceDeclaration, $vInterfaceDeclaration)
 		}
 	}
+	| UNMATCHV -> CASE $vDeclaration OF
+	{
+		$vClassDeclaration AS v:classDeclaration
+		-> CREATE VALUE <typeDeclaration>
+		   	  	 <classDeclaration>
+				  <identifier/>
+				  <classBody/>
+				 </classDeclaration>
+		   	  	</typeDeclaration>
+		| $vInterfaceDeclaration AS v:InterfaceDeclaration
+		-> CREATE VALUE <typeDeclaration>
+		   	  	 <interfaceDeclaration>
+				  <identifier/>
+				  <interfaceBody/>
+				 </interfaceDeclaration>
+				</typeDeclaration>
+	}
 }
-FOR VIEW $vDeclaration IN $view 
+FOR VIEW typeDeclaration[$vDeclaration AS (v:classDeclaration | v:interfaceDeclaration)IN $view
+MATCHING SOURCE BY $sDeclaration/@atype/string() VIEW BY $vDeclaration/@atype/string() 
 
 PROCEDURE updateClassDeclaration(source $src AS s:classDeclaration, view $view AS v:classDeclaration) =
 UPDATE classDeclaration[$sClassModifiers AS s:classModifier*, $sIdentifier AS s:identifier, $sSuper AS s:super?, $sInterfaceTypes AS s:interfaceType*, $sClassBody AS s:classBoody] IN $src BY
 {
 	updateClassModifiers($sClassModifiers, $vClassModifiers);
-	updateIdentifier($sIdentifier, $vIdentifier);
+	REPLACE $sIdentifier WITH $vIdentifier;
 	updateSuperQ($sSuper, $vSuper);
 	updateInterfaceTypes($sInterfaceTypes, $vInterfaceTypes);
 	updateClassBody($sClassBody, $vClassBody)
@@ -187,8 +138,7 @@ FOR VIEW classDeclaration[$vClassModifiers AS v:classModifier*, $vIdentifier AS 
 PROCEDURE updateClassModifiers(source $src AS s:classModifier*, view $view AS v:classModifier*) =
 UPDATE $sModifier IN $src BY
 {
-	UNMATCHS -> DELETE .
-	| UNMATCHV -> CREATE <classModifier/>
+	UNMATCHV -> CREATE <classModifier/>
 }
 FOR VIEW $vModifier IN $view
 MATCHING SOURCE BY $sModifier/text() VIEW BY $vModifier/text()
@@ -196,24 +146,16 @@ MATCHING SOURCE BY $sModifier/text() VIEW BY $vModifier/text()
 PROCDURE updateSuperQ(source $src AS s:super?, view $view AS v:super?) =
 UPDATE $sSuper IN $src BY
 {
-	MATCH -> updateSuper($sSuper, $vSuper)
-	| UNMATCHS -> DELETE .
+	MATCH -> REPLACE $sSuper WITH $vSuper
 	| UNMATCHV -> CREATE VALUE <super>
-					<classType>
-						<typeName>
-							<identifier/>
-						</typeName>
-					</classType>
+				    <classType>
+				     <typeName>
+				      <identifier/>
+				     </typeName>
+				    </classType>
 	  	      	     	   </super>
 }
 FOR VIEW $vSuper IN $view
-
-PRORCEDURE updateSuper(source $src AS s:super, view $view AS v:super) =
-UPDATE super[$sClassType AS s:classType] IN $src BY
-{
-	updateClassType($sClassType, $vClassType)
-}
-FOR VIEW super[$vClassType AS v:classType] IN $view
 
 PROCEDURE updateClassBody(source $src AS s:classBody, view $view AS v:classBody) =
 UPDATE classBody[$sClassBodyDeclarations AS s:classBodyDeclaration*] IN $src
@@ -226,7 +168,6 @@ PROCEDURE updateClassBodyDeclarations(source $src AS s:classBodyDeclaration*, vi
 UPDATE $sClassBodyDeclaration IN $src BY
 {
 	MATCH -> updateClassBodyDclaration($sClassBodyDeclaration, $vClassBodyDeclaration)
-	UNMATCHS -> DELETE .
 	UNMATCHV -> CASE $vDeclaration OF
 	{
 		$vFieldDeclaration AS v:fieldDeclaration 
@@ -286,7 +227,7 @@ MATCHING SOURCE BY $sClassBodyDeclaration/@id/string() VIEW BY $vClassBodyDeclar
 (:Here we need to make sure that class body declarations of different type cannot have the same id:)
 
 PROCEDURE updateClassBodyDeclaration(source $src AS s:classBodyDeclaration, view $view AS v:classBodyDeclaration) =
-UPDATE classBodyDeclaration[@id[$sId AS String], $sDeclaration AS (s:fieldDeclaration | s:methodDeclaration | s:staticInitializer | s:constructorDeclaration)] IN $src BY
+UPDATE classBodyDeclaration[@id[$sId AS String], $sDeclaration AS (s:fieldDeclaration | s:methodDeclaration | s:staticInitializer | s:constructorDeclaration | s:classDeclaration)] IN $src BY
 {
 	REPLACE $sId WITH $vId;
 	CASE $vDeclaration OF
@@ -310,6 +251,11 @@ UPDATE classBodyDeclaration[@id[$sId AS String], $sDeclaration AS (s:fieldDeclar
 		{
 			$sConstructorDeclaration AS s:constructorDeclaration
 			-> updateConstructorDeclaration($sConstructorDeclaration, $vConstructorDeclaration)
+		}
+		| $vClassDeclaration AS v:classDeclaration -> CASE $sDeclaration OF
+		{
+			$sClassDeclaration AS s:classDeclaration
+			-> updateClassDeclaration($sClassDeclaration, $vClassDeclaration)
 		}
 	}
 }
@@ -368,7 +314,7 @@ MATCHING SOURCE BY $sFormalParameter/identifier/text() VIEW BY $vFormalParameter
 PROCEDURE updateFormalParameter(source $src AS s:formalParameter, view $view AS v:formalParameter) =
 UPDATE formalParameter[$sTp AS s:tp, variableDeclaratorId[$sIdentifier As s:identifier, $sDims AS s:dims]] IN $src BY
 {
-	updateTp($sTp, $vTp);
+	REPLACE $sTp WITH $vTp;
 	updateString($sIdentifier/text(), $vIdentifier/text());
 	updateString($sDims/text(), $vDims/text())
 }
@@ -394,7 +340,7 @@ PROCEDURE updateConstructorBody(source $src AS s:constructorBody, view $view As 
 UPDATE constructorBody[$sExplicitConstructorInvocation AS s:explicitConstructorInvocation?, $sStatements AS s:statement*] IN $src BY
 {
 	updateExplicitConstructorInvocationQ($sExplicitConstructorInvocation, $vExplicitConstructorInvocation);
-	updateStatement($sStatements, $vStatments)
+	updateStatements($sStatements, $vStatments)
 }
 FOR VIEW constructorBody[$vExplicitConstructorInvocation AS v:explicitConstructorInvocation?, $vStatement AS v:statement*] IN $view
 
@@ -466,7 +412,7 @@ PROCEDURE updateFieldDeclaration(source $src AS s:fieldDeclaration, view $view A
 UPDATE fieldDeclaration[$sFieldModifiers AS s:fieldModifier*, $sTp AS s:tp, $sVariableDeclarators AS s:variableDeclarator+] IN $src BY
 {
 	updateFieldModifiers($sFieldModifiers, $vFieldModifiers);
-	updateTp($sTp, $vTp);
+	REPLACE $sTp WITH $vTp;
 	updateVariableDeclarators($sVariableDeclarators, $vVariableDeclarators)
 }
 FOR VIEW fieldDeclaration[$vFieldModifiers AS v:fieldModifier*, $vTp AS v:tp, $vVariableDeclarators AS v:variableDeclarator+] IN $view
@@ -554,18 +500,27 @@ UPDATE $sVariableInitializer IN $src BY
 FOR VIEW $vVariableInitializer IN $view 
 
 PROCEDURE updateVariableInitializer(source $src AS s:variableInitializer, view $view AS v:variableInitializer) =
-UPDATE variableInitializer[$sVI AS (s:expression | s:arrayInitializer)] IN $src BY
+UPDATE variableInitializer[@atype[$sTp AS String],$sVI AS (s:expression | s:arrayInitializer)] IN $src BY
 {
-	CASE $vVI OF
+	MATCH -> CASE $vVI OF
 	{
 		$vExpression AS v:expression
 		-> CASE $sVI OF
 		{
 			$sExpression AS s:expression
 			-> updateExpression($sExpression, $vExpression)
-			| $sArrayInitializer AS s:arayInitilizer
-			-> DELETE . ;
-			CREATE VALUE <variableInitializer>
+		}
+		$vArrayInitializer AS v:arrayInitializer
+		-> CASE $sVI OF
+		{
+			$sArrayInitializer AS s:arrayInitilizer
+			-> updateArrayInitializer($sArrayInitializer, $vArrayInitializer)
+		}
+	}
+	| UNMATCHV -> CASE $vVI OF
+	{
+		v:expression -> CREAT VALUE 
+			     	     <variableInitializer atype = "">
 				      <expression>
 				       <assignmentExpression>
 				        <conditionalExpression>
@@ -602,22 +557,14 @@ UPDATE variableInitializer[$sVI AS (s:expression | s:arrayInitializer)] IN $src 
 	  			       </assignmentExpression>
 	 			      </expression>
 		    	   	     </variableInitializer>
-		}
-		$vArrayInitializer AS v:arrayInitializer
-		-> CASE $sVI OF
-		{
-			$sArrayInitializer AS s:arrayInitilizer
-			-> updateArrayInitializer($sArrayInitializer, $vArrayInitializer)
-			| $sExpression AS s:expression
-			-> DELETE . ;
-			CREATE <variableInitializer>
-				<arrayInitializer>
-				</arrayInitializer>
-			       </variableInitializer>
-		}
+		v:arrayInitializer -> CREATE VALUE <variableInitializer atype = "">
+				      	     	    <arrayInitializer>
+						    </arrayInitializer>
+			       			   </variableInitializer>
 	}
 }
-FOR VIEW variableInitializer[$vVI AS (v:expression | v:arrayInitializer)] IN $view
+FOR VIEW variableInitializer[@atype[$vTp AS String], $vVI AS (v:expression | v:arrayInitializer)] IN $view
+MATCHING SOURCE BY $sTp VIEW BY $vTp
 
 PROCEDURE updateMethodDeclaration(source $src AS s:methodDeclaration, view $view AS v:methodDeclaration) =
 UPDATE methodDeclaration[$sMethodHeader AS s:methodHeader, $sMethodBody AS s:methodBody] IN $src BY
@@ -646,25 +593,34 @@ FOR VIEW $vModifier IN $view
 MATCHING SOURCE BY $sModifier/text() VIEW BY $vModifier/text()
 
 PROCEDURE updateResultType(source $src AS s:resultType, view $view AS v:resultType) =
-UPDATE resultType[$sRTp AS (s:tp | s:voidType)] IN $src BY
+UPDATE resultType[@atype[$sTp AS String], $sRTp AS (s:tp | s:voidType)] IN $src BY
 {
-	CASE $vRTp OF
+	MATCH -> CASE $vRTp OF
 	{
 		$vTp AS v:tp -> CASE $sRTp OF
 		{
-			$sTp AS s:tp -> updateTp($sTp, $vTp)
-			| $sVoid AS s:voidType -> DELETE .;
-			  	    	       	  CREATE VALUE <resultType>{$vTp}</resultType>
+			$sTp AS s:tp -> REPLACE $sTp WITH $vTp
 		}
 		| $vVoid AS v:voidType -> CASE $sRTp OF
 		{
-			$sTp AS s:tp -> DELETE . ;
-			     	     	CREATE VALUE <resultType>{$vVoid}</resultType>
-			| $sVoid AS s:voidType -> updateString($sVoid/text(), $vVoid/text())
+			$sVoid AS s:voidType -> updateString($sVoid/text(), $vVoid/text())
 		}
 	}
+	| UNMATCHV -> CASE $vRTp OF
+	{
+		v:tp -> CREATE VALUE <resultType tp = "">
+		     	       	      <tp>
+				       <primitiveType/>
+				      </tp>
+		     	       	     </resultType>
+		| v:voidType -> CREATE VALUE <resultType atype = "">
+		  	     	       	      <voidType/>
+		  	     	       	     </resultType>
+	}
+
 }
-FOR VIEW resultType[$vRTp AS (v:tp | v:voidType)] IN $view
+FOR VIEW resultType[@atype[$vTp AS String], $vRTp AS (v:tp | v:voidType)] IN $view
+MATCHING SOURCE BY $sTp VIEW BY $vTp
 
 PROCEDURE updateMethodDeclarator(source $src AS s:methodDeclarator, view $view AS v:methodDeclarator) =
 UPDATE methodDeclarator[$sIdentifier AS s:identifier, $sFormalParameters AS s:formalParameter*] IN $src BY
@@ -693,7 +649,7 @@ PROCEDURE updateInterfaceDeclaration(source $src AS s:interfaceDeclaration, view
 UPDATE interfaceDeclaration[$sInterfaceModifiers AS s:interfaceModifier*, $sIdentifier AS s:identifier, $sExtendsInterfaces AS s:extendsInterfaces?, $sInterfaceBody AS s:interfaceBody] IN $src BY
 {
 	updateInterfaceModifiers($sInterfaceModifiers, $vInterfaceModifiers);
-	updateIdentifier($sIdentifier, $vIdentifier);
+	REPLACE $sIdentifier WITH $vIdentifier;
 	updateExtendsInterfacesQ($sExtendsInterfaces, $vExtendsInterfaces);
 	updateInterfaceBody($sInterfaceBody, $vInterfaceBody)
 }
@@ -805,7 +761,7 @@ PROCEDURE updateConstantDeclaration(source $src AS s:constantDeclaration, view $
 UPDATE constantDeclaration[$sConstantModifiers AS s:constantModifiers, $sTp AS s:tp, $sVariableDeclarator AS s:variableDeclarator] IN $src BY
 {
 	updateString($sConstantModifiers/text(), $vConstantModifiers/text());
-	updateTp($sTp, $vTp);
+	REPLACE $sTp WITH $vTp;
 	updateVariableDeclarator($sVariableDeclarator, $vVariableDeclarator)
 }
 FOR VIEW constantDeclaration[$vConstantModifiers AS v:constantModifiers, $vTp AS v:tp, $vVariableDeclarator As v:variableDeclarator] IN $view
@@ -848,65 +804,513 @@ FOR VIEW $vVI IN $view
 
 (:-----------------------------Types------------------------------:)
 
-PROCEDURE updateTp(source $src AS s:tp, view $view AS v:tp) =
-UPDATE tp[$sTp AS (s:primitiveType | s:referenceType)] IN $src BY
+(:------------------------Blocks and Commands---------------------:)
+
+PROCEDURE updateBlock(source $src AS s:block, view $view AS v:block) =
+UPDATE block[$sStmts AS s:statement*] IN $src BY
 {
-	CASE $vTp OF
- 	{
-		$vPrimitiveType AS v:primitiveType
-		-> CASE $sTp OF
-		{
-			$sPrimitiveType AS s:primitiveType
-			-> updatePrimitiveType($sPrimitiveType, $vPrimitiveType)
-			| sReferenceType AS s:referenceType
-			-> DELETE . ;
-			CREATE VALUE <tp>
-					{$vPrimitiveType}
-			       	     </tp>
-		}
-		| $vReferenceType AS v:referenceType
-		-> CASE $sTp OF
-		{
-			$sPrimitiveType AS s:primitiveType
-			-> DELETE . ;
-			CREATE VALUE <tp>
-					{$vReferenceType}
-				     </tp>
-			| $sReferenceType AS v:referenceType
-			-> updateReferenceType($sReferenceType, $vReferenceType)
-		}
-	}
+	updateStatements($sStmts, $vStmts)
 }
-FOR VIEW tp[$vTp AS (v:primitiveType | s:referenceType)] IN $view
+FOR VIEW block[$vStmts AS v:statement*] IN $view
 
-PROCEDURE updatePrimitiveType(source $src AS s:primitiveType, view $view AS v:primitiveType) =
-updateString($src/text(), $view/text())
-
-PROCEDURE updateReferenceType(source $src AS s:referenceType, view $view AS v:referenceType) =
-UPDATE referenceType[$sRT AS (s:arrayType | s:classType | s:interfaceType)] IN $src BY
+PROCEDURE updateStatements(source $src AS s:statement*, view $view AS v:statement*) =
+UPDATE statement[@atype[$sat AS String], @marker[$sMarker AS String], @isOperationChain[$sIsOpChain AS String], $sStmt AS (s:localVariableDeclarationStatement | s:labeledStatement | s:ifStatement | s:whileStatement | s:forStatement | s:block | s:emptyStatement | s:expressionStatement | s:switchStatement | s:doStatement | s:breakStatement | s:continueStatement | s:returnStatement | s:synchronizedStatement | s:throwsStatement | s:tryStatement | s:enhancedForStatement) ] IN $src BY
 {
-	CASE $vRT OF
-	{
-		$vArrayType AS v:arrayType
-		-> CASE $sRT OF
-		{
-			$sArrayType AS s:arrayType
-			-> updateArrayType($sArrayType, $vArrayType)
-			| $sClassType AS s:classType
-			-> DELETE
-		}
-	}
+	MATCH -> REPLACE $sat WITH $vat; 
+	      	 REPLACE $sMarker WITH $vMark;
+		 REPLACE $sIsOpChain WITH $vIsOpChain;
+		 REPLACE $sMatchFlag WITH $vMatchFlag
+	      	 IF $sIsOpChain = "true"
+		      CASE $sStmt OF
+		      {
+			$enhancedForStatement AS s:enhancedForStatement
+			-> synchronizationMain($enhancedForStatement, $vStmt)
+		      }  
+		 ELSE 		 
+		   updateStatement($sStmt, $vStmt)
+	} 
+	| UNMATCHV -> IF $vIsOpChain = "true"
+	  	      	 CREATE VALUE
+				     <statement 
+				     	atype = "" 
+					marker = "" 
+					isOperation = "true" 
+					block = "">
+			 	      <enhancedForStatement opStmtType = "">
+				       <itVariable>
+					<tp>
+					 <referenceType>
+					  <classType>
+					   <typeName>
+					    <identifier/>
+					   </typeName>
+					  </classType>
+					 </referenceType>
+					</tp>
+					<variableDeclarator>
+					 <variableDeclaratorId>
+					  <identifier/>
+					  <dims/>
+					 </variableDeclaratorId>
+					</variableDeclarator>
+				       </itVariable>
+				       <itCollection>
+					<expression>
+					 <assignmentExpression>
+				          <conditionalExpression>
+	    			           <conditionalOrExpression>
+	     			            <conditionalAndExpression>
+	      			             <inclusiveOrExpression>
+	       				      <exclusiveOrExpression>
+	        			       <andExpression>
+	         			        <equalityExpression>
+		  			         <relationalExpression>
+		   			          <shiftExpression>
+		    			           <additiveExpression>	
+		     			            <mutiplicativeExpression>
+		      			             <unaryExpression>
+		       				      <unaryExpressionNotPlusMinus>
+		        			       <postfixExpression>
+			 			        <expressionName>
+			  			         <identifier/>
+			 			        </expressionName>
+						       </postfixExpression>
+		       				      </unaryExpressionNotPlusMinus>
+		      				     </unaryExpression>
+		     			            </mutiplicativeExpression>
+		    			           </additiveExpression>
+		   			          </shiftExpression>
+		  			         </ralationalExpression>
+	         			        </equalityExpression>
+					       </andExpression>
+	       				      </exclusiveOrExpression>
+	      				     </inclusiveOrExpression>
+	     			            </conditionalAndExpression>
+	    			           </conditionalOrExpression>
+	   			          </conditionalExpression>
+	  			         </assignmentExpression>
+					</expression>
+				       </itCollection>
+				       <statement 
+				       	  atype="" 
+					  marker = "" 
+					  isOperation = "" 
+					  block = "">
+					<emptyStatement/>
+				       </statement>
+			 	      </enhancedForStatement>
+				     </statement>		      
+		      ELSE	    
+		         CREATE VALUE <statement atype="" marker = "" isOperation = "" block = "">
+	  	      	     	        <emptyStatement/>
+	  	      	     	      </statement>
 }
-FOR VIEW referenceType[$vRT AS (v:arrayType | v:classType | v:interfaceType)] IN $view
+FOR VIEW statement[@atype[$vat AS String], @marker[$vMarker AS String], @isOperationChain[$vIsOpChain AS String], @matchFlag[$vMatchFlag AS String], $vStmt AS (v:localVariableDeclarationStatement | v:labeledStatement | v:ifStatement | v:whileStatement | v:forStatement | v:block | v:emptyStatement | v:expressionStatement | v:switchStatement | v:doStatement | v:breakStatement | v:continueStatement | v:returnStatement | v:synchronizedStatement | v:throwsStatement | v:tryStatement | v:enhancedForStatement) ] IN $view
+MATCHING SOURCE BY $sMarker VIEW BY $vMarker
 
+(:*****************************Synchronization Main function********************************:)
 
-
- 
-PROCEDURE updatePackageName(source $src AS s:packageName, view $view AS v:packageName) =
-UPDATE packageName[$sIdentifiers AS s:identifier+] IN $src BY
+PROCEDURE synchronizationMain(source $src AS s:enhancedForStatement, view $view AS (v:localVariableDeclarationStatemen | v:labeledStatement | v:ifStatementt | v:whileStatement | v:forStatement | v:block | v:emptyStatement | v:expressionStatement | v:switchStatement | v:doStatement | v:breakStatement | v:continueStatement | v:returnStatement | v:synchronizedStatement | v:throwsStatement | v:tryStatement | v:enhancedForStatement)) =
+UPDATE enhancedForStatement[@opStmtType[$opStmtType AS String], $var AS s:itVariable, $collection AS s:itCollection, $loopStmt AS s:statement, $operation AS s:operation?] IN $src BY
 {
-
+	IF $opStmtType = "match"
+	   CASE $vStmt OF
+	   {
+		ifStatement[expression[assignmentExpression[conditonalExpression[conditionalOrExpression[conditionalAndExpression[inclusiveOrExpression[exclusiveOrExpression[andExpression[equalityExpression[relationalExpression[shiftExpression[additiveExpression[mutiplicativeExpression[unaryExpression[unaryExpressionNotPlusMinus[postfixExpression[primary[primaryNoNewArray[$methodInvocation AS v:methodInvocation]]]]]]]]]]]]]]]]]]], $stmt AS v:statement] AS v:ifStatement
+		-> updateByMethodInvocation($opStmtType, $var, $collection, $loopStmt, $operation, $methodInvocation);
+		   updateByLastStatement($loopStmt, $stmt)
+	   }
+	ELSE IF $opStmtType = "forEach" 
+	   CASE $vStmt OF
+	   {   
+		expressionStatement[statementExpression[$methodInvocation AS v:methodInvocation]]
+		-> updateByMethodInvocation($opStmtType, $var, $collection, $loopStmt, $operation, $methodInvocation)
+	   }
+	ELSE IF $opStmtType = "reduce"
+	   CASE $vStmt OF
+	   {
+		expressionStatement[statementExpression[assignment[$leftHandSide AS v:leftHandside, assignmentOperator[v:equal], assignmentExpression[conditonalExpression[conditionalOrExpression[conditionalAndExpression[inclusiveOrExpression[exclusiveOrExpression[andExpression[equalityExpression[relationalExpression[shiftExpression[additiveExpression[mutiplicativeExpression[unaryExpression[unaryExpressionNotPlusMinus[postfixExpression[primary[primaryNoNewArray[$methodInvocation AS v:methodInvocation]]]]]]]]]]]]]]]]]]]]
+		-> updateByMethodInvocation($opStmtType, $var, $collection, $loopStmt, $operation, $methodInvocation);
+		   updateByleftHandSide($loopStmt, $leftHandSide)
+	   }
+	ELSE{
+	   CASE $vStmt OF
+	   {
+		v:ifStatement -> $opStmtType = "match"
+		| expressionStatement[statementExpression[v:methodInvocation]] 
+		  -> $opStmtType = "forEach"
+		| expressionStatement[statementExpression[v:assigment]]
+		  -> $opStmtType = "reduce" 
+	   };
+	   synchronizationMain($src, $view) 
 }
+FOR VIEW $vStmt IN $view
+
+PROCEDURE updateByMethodInvocation(source $opStmtType AS String, source $var AS s:itVariable, source $collection AS s:itCollection, source $loopStmt AS s:statement, source $operation AS s:operation?, view $view AS v:methodInvocation) =
+CASE $view OF
+{
+	methodInvocation[@opMarker[$opMarker AS String], primary[primaryNoNewArray[$methodInvocation AS v:methodInvocation]] AS v:primary, $identifier AS v:identifier, $arguments AS v:argument*]
+	->  IF $identifier != "stream" 
+	      CASE $operation OF
+	      {
+		operation[$opId AS s:opId, $opName AS s:opName, $parameter AS s:parameterPart, $op AS s:operation?]
+		-> REPLACE $opId WITH $opMarker;
+		   REPLACE $opName WITH $identifier;
+		   REPLACE $parameter WIGH $arguments//parameterPart;
+	      };
+	      IF $opation/opName = "reduce"
+	      	 UPDATE statement[@atype[String], @maker[$sMarker AS String], @isOperationChain[String], @operation[String], @last[$last AS String] expressionStatement[StatementExpression[assigment[$operator AS s:assigmentOperator]]]] IN $loopStmt//statement BY
+		 {
+			IF $lambdaExp = <lambdaExpresssion>
+					  <parameterPart>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>accumulator</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>_item</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					  </parameterPart>
+					  <lambdaBody>
+					   <expression>
+					    <assignmentExpression>
+				             <conditionalExpression>
+	    			              <conditionalOrExpression>
+	     			               <conditionalAndExpression>
+	      			                <inclusiveOrExpression>
+	       				         <exclusiveOrExpression>
+	        			          <andExpression>
+	         			           <equalityExpression>
+		  			            <relationalExpression>
+		   			             <shiftExpression>
+		    			              <additiveExpression>
+						       <additiveExpression>	
+		     			                <mutiplicativeExpression>
+		      			                 <unaryExpression>
+		       				          <unaryExpressionNotPlusMinus>
+		        			           <postfixExpression>
+			 			            <expressionName>
+			  			             <identifier>accumulator</identifier>
+			 			            </expressionName>
+						           </postfixExpression>
+		       				          </unaryExpressionNotPlusMinus>
+		      				         </unaryExpression>
+		     			               	</mutiplicativeExpression>
+		    			               </additiveExpression>
+						       <additiveOperator>+</additiveOperator>
+						       <mutiplicativeExpression>
+		      			                <unaryExpression>
+		       				         <unaryExpressionNotPlusMinus>
+		        			          <postfixExpression>
+			 			           <expressionName>
+			  			            <identifier>_item</identifier>
+			 			           </expressionName>
+						          </postfixExpression>
+		       				         </unaryExpressionNotPlusMinus>
+		      				        </unaryExpression>
+		     			               </mutiplicativeExpression>
+						      </additiveExpression>
+						      </additiveExpression>
+						     </shiftExpression>
+		  			            </ralationalExpression>
+	         			           </equalityExpression>
+					          </andExpression>
+	       				         </exclusiveOrExpression>
+	      				        </inclusiveOrExpression>
+	     			               </conditionalAndExpression>
+	    			              </conditionalOrExpression>
+	   			             </conditionalExpression>
+	  			            </assignmentExpression>
+					   </expression>
+					  </lambdaBody>
+			    	       	 </lambdaExpression>
+			  REPLACE $operator WITH "+="
+			ELSE IF $lambdaExp = <lambdaExpresssion>
+					  <parameterPart>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>accumulator</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>_item</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					  </parameterPart>
+					  <lambdaBody>
+					   <expression>
+					    <assignmentExpression>
+				             <conditionalExpression>
+	    			              <conditionalOrExpression>
+	     			               <conditionalAndExpression>
+	      			                <inclusiveOrExpression>
+	       				         <exclusiveOrExpression>
+	        			          <andExpression>
+	         			           <equalityExpression>
+		  			            <relationalExpression>
+		   			             <shiftExpression>
+		    			              <additiveExpression>
+						       <additiveExpression>	
+		     			                <mutiplicativeExpression>
+		      			                 <unaryExpression>
+		       				          <unaryExpressionNotPlusMinus>
+		        			           <postfixExpression>
+			 			            <expressionName>
+			  			             <identifier>accumulator</identifier>
+			 			            </expressionName>
+						           </postfixExpression>
+		       				          </unaryExpressionNotPlusMinus>
+		      				         </unaryExpression>
+		     			               	</mutiplicativeExpression>
+		    			               </additiveExpression>
+						       <additiveOperator>-</additiveOperator>
+						       <mutiplicativeExpression>
+		      			                <unaryExpression>
+		       				         <unaryExpressionNotPlusMinus>
+		        			          <postfixExpression>
+			 			           <expressionName>
+			  			            <identifier>_item</identifier>
+			 			           </expressionName>
+						          </postfixExpression>
+		       				         </unaryExpressionNotPlusMinus>
+		      				        </unaryExpression>
+		     			               </mutiplicativeExpression>
+						      </additiveExpression>
+						      </additiveExpression>
+						     </shiftExpression>
+		  			            </ralationalExpression>
+	         			           </equalityExpression>
+					          </andExpression>
+	       				         </exclusiveOrExpression>
+	      				        </inclusiveOrExpression>
+	     			               </conditionalAndExpression>
+	    			              </conditionalOrExpression>
+	   			             </conditionalExpression>
+	  			            </assignmentExpression>
+					   </expression>
+					  </lambdaBody>
+			    	       	 </lambdaExpression>
+			  REPLACE $operator WITH "-="
+			ELSE IF $lambdaExp = <lambdaExpresssion>
+					  <parameterPart>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>accumulator</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>_item</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					  </parameterPart>
+					  <lambdaBody>
+					   <expression>
+					    <assignmentExpression>
+				             <conditionalExpression>
+	    			              <conditionalOrExpression>
+	     			               <conditionalAndExpression>
+	      			                <inclusiveOrExpression>
+	       				         <exclusiveOrExpression>
+	        			          <andExpression>
+	         			           <equalityExpression>
+		  			            <relationalExpression>
+		   			             <shiftExpression>
+		    			              <additiveExpression>
+		     			               <mutiplicativeExpression>
+							<mutiplicativeExpression>
+		      			                 <unaryExpression>
+		       				          <unaryExpressionNotPlusMinus>
+		        			           <postfixExpression>
+			 			            <expressionName>
+			  			             <identifier>accumulator</identifier>
+			 			            </expressionName>
+						           </postfixExpression>
+		       				          </unaryExpressionNotPlusMinus>
+		      				         </unaryExpression>
+		     			               	</mutiplicativeExpression>
+							<multiOperator>*</multiOperator>
+		      			                <unaryExpression>
+		       				         <unaryExpressionNotPlusMinus>
+		        			          <postfixExpression>
+			 			           <expressionName>
+			  			            <identifier>_item</identifier>
+			 			           </expressionName>
+						          </postfixExpression>
+		       				         </unaryExpressionNotPlusMinus>
+		      				        </unaryExpression>
+		     			               </mutiplicativeExpression>
+						      </additiveExpression>
+						     </shiftExpression>
+		  			            </ralationalExpression>
+	         			           </equalityExpression>
+					          </andExpression>
+	       				         </exclusiveOrExpression>
+	      				        </inclusiveOrExpression>
+	     			               </conditionalAndExpression>
+	    			              </conditionalOrExpression>
+	   			             </conditionalExpression>
+	  			            </assignmentExpression>
+					   </expression>
+					  </lambdaBody>
+			    	       	 </lambdaExpression>
+			  REPLACE $operator WITH "*="
+			ELSE IF $lambdaExp = <lambdaExpresssion>
+					  <parameterPart>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>accumulator</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					   <lambdaParameter>
+					    <variableDeclaratorId>
+					     <identifier>_item</identifier>
+					     <dims>0<dims>
+					    </variableDeclaratorId>
+					   </lambdaParameter>
+					  </parameterPart>
+					  <lambdaBody>
+					   <expression>
+					    <assignmentExpression>
+				             <conditionalExpression>
+	    			              <conditionalOrExpression>
+	     			               <conditionalAndExpression>
+	      			                <inclusiveOrExpression>
+	       				         <exclusiveOrExpression>
+	        			          <andExpression>
+	         			           <equalityExpression>
+		  			            <relationalExpression>
+		   			             <shiftExpression>
+		    			              <additiveExpression>
+		     			               <mutiplicativeExpression>
+							<mutiplicativeExpression>
+		      			                 <unaryExpression>
+		       				          <unaryExpressionNotPlusMinus>
+		        			           <postfixExpression>
+			 			            <expressionName>
+			  			             <identifier>accumulator</identifier>
+			 			            </expressionName>
+						           </postfixExpression>
+		       				          </unaryExpressionNotPlusMinus>
+		      				         </unaryExpression>
+		     			               	</mutiplicativeExpression>
+							<multiOperator>/</multiOperator>
+		      			                <unaryExpression>
+		       				         <unaryExpressionNotPlusMinus>
+		        			          <postfixExpression>
+			 			           <expressionName>
+			  			            <identifier>_item</identifier>
+			 			           </expressionName>
+						          </postfixExpression>
+		       				         </unaryExpressionNotPlusMinus>
+		      				        </unaryExpression>
+		     			               </mutiplicativeExpression>
+						      </additiveExpression>
+						     </shiftExpression>
+		  			            </ralationalExpression>
+	         			           </equalityExpression>
+					          </andExpression>
+	       				         </exclusiveOrExpression>
+	      				        </inclusiveOrExpression>
+	     			               </conditionalAndExpression>
+	    			              </conditionalOrExpression>
+	   			             </conditionalExpression>
+	  			            </assignmentExpression>
+					   </expression>
+					  </lambdaBody>
+			    	       	 </lambdaExpression>
+			  REPLACE $operator WITH "/="
+			ELSE
+			  REPLACE $operator WITH "%="       
+		 }
+		 FOR VIEW $lambdaExp IN $arguments//argument//lambdaExpression
+		 WHERE $last = "true"
+	      ELSE 
+	      	 UPDATE $sStmt IN $loopStmt//statement BY
+	      	 {
+			MATCH -> updateStatement($sStmt, $vStmt)
+			| UNMATCHS -> DELETE .
+			| UNMATCHV -> CREATE VALUE <statement 
+		  	      	     	      atype = ""
+					      marker = ""
+					      isOperationChain = "">
+					    <emptyStatement/>
+		  	      	     	   </statement>
+	      	 }
+	      	 FOR VIEW $vStmt IN $arguments//statement
+	      	 MATCHING SOURCE BY $sStmt/@marker/string() VIEW BY $vStmt/@marker/string()
+	      	 WHERE $sStmt/@operation = $opMarker;
+	     	 UPDATE $sExp IN $loopStmt//ifStatement/expression BY
+	      	 {
+			MATCH -> updateExpression($sExp, $vExp)
+			| UNMATCHV -> CREATE VALUE 
+		  	      	     	<expression>
+					 <assignmentExpression>
+				          <conditionalExpression>
+	    			           <conditionalOrExpression>
+	     			            <conditionalAndExpression>
+	      			             <inclusiveOrExpression>
+	       				      <exclusiveOrExpression>
+	        			       <andExpression>
+	         			        <equalityExpression>
+		  			         <relationalExpression>
+		   			          <shiftExpression>
+		    			           <additiveExpression>	
+		     			            <mutiplicativeExpression>
+		      			             <unaryExpression>
+		       				      <unaryExpressionNotPlusMinus>
+		        			       <postfixExpression>
+			 			        <expressionName>
+			  			         <identifier/>
+			 			        </expressionName>
+						       </postfixExpression>
+		       				      </unaryExpressionNotPlusMinus>
+		      				     </unaryExpression>
+		     			            </mutiplicativeExpression>
+		    			           </additiveExpression>
+		   			          </shiftExpression>
+		  			         </ralationalExpression>
+	         			        </equalityExpression>
+					       </andExpression>
+	       				      </exclusiveOrExpression>
+	      				     </inclusiveOrExpression>
+	     			            </conditionalAndExpression>
+	    			           </conditionalOrExpression>
+	   			          </conditionalExpression>
+	  			         </assignmentExpression>
+					</expression>
+	           }
+	      	   FOR VIEW IN $vExp IN $arguments//lambdaBody/expression
+	      	   MATCHING SOURCE BY $sExp/@marker VIEW BY $vExp/@marker
+	      	   WHREE $sExp/@operation = $opMarker;
+	           updateByMethodInvocation($var, $collection, $loopStmt, $operation/operation, $methodInvocation)
+	ELSE 
+	   stopForLoopUpd($enhancedForStatement, $methodInvocation)
+}
+
+
+PROCEDURE updateByMethodName(source $src AS s:operation?, view $id AS v:identifier, view $opMarker AS String) =
+UPDATE $op IN $src/operation BY
+{
+	MATCH -> REPLACE ./opName WITH $id
+	| UNMATCHS -> KEEP .
+	| UNMATCHV -> CREATE VALUE <operation>
+	  	      	     	    <opId/>
+				    <opName/>
+				   </operation>
+}
+FOR VIEW $opMarker
 
 PROCEDURE updateString(source $src AS String, view $view AS String) =
 UPDATE $sString IN $src BY
